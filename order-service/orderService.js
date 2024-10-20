@@ -51,6 +51,11 @@ function placeOrder(req, res) {
 function startServer() {
   app.post("/order", placeOrder);
 
+  // Get all orders
+  app.get("/orders", (req, res) => {
+    res.status(200).json(orders);
+  });
+
   app.listen(PORT, () => {
     console.log(`Order Service running on http://localhost:${PORT}`);
   });

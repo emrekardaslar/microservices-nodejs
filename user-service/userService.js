@@ -34,6 +34,11 @@ function registerUser(req, res) {
 function startServer() {
   app.post("/register", registerUser);
 
+  // Get all users
+  app.get("/users", (req, res) => {
+    res.status(200).json(users);
+  });
+
   app.listen(PORT, () => {
     console.log(`User Service running on http://localhost:${PORT}`);
   });
