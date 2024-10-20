@@ -5,9 +5,7 @@ This project demonstrates a simple microservices architecture using Node.js and 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Instructions for Use](##instructions-for-use)
 - [Getting Started](#getting-started)
-- [Curl Examples](#curl-examples)
 
 ## Prerequisites
 
