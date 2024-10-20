@@ -1,45 +1,48 @@
 const express = require("express");
-const amqp = require("amqplib/callback_api"); // RabbitMQ library
+const bodyParser = require("body-parser");
+const amqp = require("amqplib/callback_api");
+
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(bodyParser.json());
 
-let users = [];
+let users = []; // In-memory storage for users
+let channel; // RabbitMQ channel
 
-// Function to publish a message to RabbitMQ
-function publishToQueue(queue, message) {
-  amqp.connect("amqp://rabbitmq", (error0, connection) => {
-    if (error0) throw error0;
-    connection.createChannel((error1, channel) => {
-      if (error1) throw error1;
-      channel.assertQueue(queue, { durable: false });
-      channel.sendToQueue(queue, Buffer.from(message));
-      console.log(" [x] Sent %s", message);
+// Connect to RabbitMQ
+function connectRabbitMQ() {
+  amqp.connect("amqp://rabbitmq", (err, connection) => {
+    if (err) throw err;
+    connection.createChannel((err, ch) => {
+      if (err) throw err;
+      channel = ch;
+      channel.assertExchange("order_events", "fanout", { durable: false });
     });
-    setTimeout(() => {
-      connection.close();
-    }, 500);
   });
 }
 
-// Get all users
-app.get("/users", (req, res) => {
-  res.json(users);
-});
+// Register a user
+function registerUser(req, res) {
+  const { username, email } = req.body;
+  const newUser = { id: users.length + 1, username, email };
+  users.push(newUser);
+  res.status(201).send(newUser);
+}
 
-// Add a new user and publish an event
-app.post("/users", (req, res) => {
-  const user = req.body;
-  users.push(user);
+// Start the server
+function startServer() {
+  app.post("/register", registerUser);
 
-  // Publish an event to RabbitMQ
-  const message = JSON.stringify({ user });
-  publishToQueue("userCreated", message);
+  app.listen(PORT, () => {
+    console.log(`User Service running on http://localhost:${PORT}`);
+  });
+}
 
-  res.status(201).json(user);
-});
+// Initialize the service
+function init() {
+  connectRabbitMQ();
+  startServer();
+}
 
-app.listen(PORT, () => {
-  console.log(`User Service running on http://localhost:${PORT}`);
-});
+init();
