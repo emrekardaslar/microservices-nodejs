@@ -18,11 +18,15 @@ function connectRabbitMQ() {
       if (err) throw err;
       channel = ch;
       channel.assertExchange("order_events", "fanout", { durable: false });
+
+      // Create a temporary queue for consuming messages
       channel.assertQueue("", { exclusive: true }, (err, q) => {
         if (err) throw err;
+
+        // Bind the queue to the order events exchange
         channel.bindQueue(q.queue, "order_events", "");
 
-        console.log("Waiting for messages in %s", q.queue);
+        console.log("Waiting for order messages in %s", q.queue);
         channel.consume(q.queue, handleOrderMessage, { noAck: true });
       });
     });
@@ -32,7 +36,7 @@ function connectRabbitMQ() {
 // Handle incoming order messages
 function handleOrderMessage(msg) {
   const order = JSON.parse(msg.content.toString());
-  console.log(`Order received: ${JSON.stringify(order)}`);
+  console.log(`Order created: ${JSON.stringify(order)}`);
 }
 
 // Place an order
@@ -43,6 +47,7 @@ function placeOrder(req, res) {
 
   // Publish event to RabbitMQ
   channel.publish("order_events", "", Buffer.from(JSON.stringify(newOrder)));
+  console.log(`Order published: ${JSON.stringify(newOrder)}`);
 
   res.status(201).send(newOrder);
 }
