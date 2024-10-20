@@ -1,12 +1,10 @@
 {
   "name": "order-service",
   "version": "1.0.0",
-  "description": "A simple order service microservice",
   "main": "orderService.js",
-  "scripts": {
-    "start": "node orderService.js"
-  },
   "dependencies": {
-    "express": "^4.18.2"
+    "amqplib": "^0.8.0",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1"
   }
 }

@@ -4,13 +4,26 @@ services:
     build: ./user-service
     ports:
       - "3000:3000"
-    volumes:
-      - ./user-service:/app
-    command: npm start
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   order-service:
     build: ./order-service
     ports:
       - "3001:3001"
-    volumes:
-      - ./order-service:/app
-    command: npm start
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672" # RabbitMQ message broker
+      - "15673:15672" # RabbitMQ management console
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s

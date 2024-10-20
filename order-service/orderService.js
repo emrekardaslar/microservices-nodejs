@@ -1,23 +1,75 @@
 const express = require("express");
+const bodyParser = require("body-parser");
+const amqp = require("amqplib/callback_api");
+
 const app = express();
 const PORT = 3001;
 
-app.use(express.json());
+app.use(bodyParser.json());
 
-let orders = [];
+let orders = []; // In-memory storage for orders
+let channel; // RabbitMQ channel
 
-// Get all orders
-app.get("/orders", (req, res) => {
-  res.json(orders);
-});
+// Connect to RabbitMQ
+function connectRabbitMQ() {
+  amqp.connect("amqp://rabbitmq", (err, connection) => {
+    if (err) throw err;
+    connection.createChannel((err, ch) => {
+      if (err) throw err;
+      channel = ch;
+      channel.assertExchange("order_events", "fanout", { durable: false });
 
-// Add a new order
-app.post("/orders", (req, res) => {
-  const order = req.body;
-  orders.push(order);
-  res.status(201).json(order);
-});
+      // Create a temporary queue for consuming messages
+      channel.assertQueue("", { exclusive: true }, (err, q) => {
+        if (err) throw err;
 
-app.listen(PORT, () => {
-  console.log(`Order Service running on http://localhost:${PORT}`);
-});
+        // Bind the queue to the order events exchange
+        channel.bindQueue(q.queue, "order_events", "");
+
+        console.log("Waiting for order messages in %s", q.queue);
+        channel.consume(q.queue, handleOrderMessage, { noAck: true });
+      });
+    });
+  });
+}
+
+// Handle incoming order messages
+function handleOrderMessage(msg) {
+  const order = JSON.parse(msg.content.toString());
+  console.log(`Order created: ${JSON.stringify(order)}`);
+}
+
+// Place an order
+function placeOrder(req, res) {
+  const { userId, items } = req.body;
+  const newOrder = { id: orders.length + 1, userId, items };
+  orders.push(newOrder);
+
+  // Publish event to RabbitMQ
+  channel.publish("order_events", "", Buffer.from(JSON.stringify(newOrder)));
+  console.log(`Order published: ${JSON.stringify(newOrder)}`);
+
+  res.status(201).send(newOrder);
+}
+
+// Start the server
+function startServer() {
+  app.post("/order", placeOrder);
+
+  // Get all orders
+  app.get("/orders", (req, res) => {
+    res.status(200).json(orders);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Order Service running on http://localhost:${PORT}`);
+  });
+}
+
+// Initialize the service
+function init() {
+  connectRabbitMQ();
+  startServer();
+}
+
+init();
