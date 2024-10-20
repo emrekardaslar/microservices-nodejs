@@ -5,10 +5,9 @@ This project demonstrates a simple microservices architecture using Node.js and 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
+- [Instructions for Use](##instructions-for-use)
 - [Getting Started](#getting-started)
-- [Using Docker Compose](#using-docker-compose)
 - [Curl Examples](#curl-examples)
-- [License](#license)
 
 ## Prerequisites
 
@@ -39,7 +38,7 @@ This `README.md` provides a comprehensive guide for setting up, running, and int
     docker-compose up --build
     ```
 
-3.  **Examples**
+3.  **Curl Examples**
 
     Create a user:
 
