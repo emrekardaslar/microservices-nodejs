@@ -1,0 +1,12 @@
+{
+  "name": "order-service",
+  "version": "1.0.0",
+  "description": "A simple order service microservice",
+  "main": "orderService.js",
+  "scripts": {
+    "start": "node orderService.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

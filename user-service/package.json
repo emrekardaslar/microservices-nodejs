@@ -1,0 +1,12 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "description": "A simple user service microservice",
+  "main": "userService.js",
+  "scripts": {
+    "start": "node userService.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,16 @@
+version: "3"
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./user-service:/app
+    command: npm start
+  order-service:
+    build: ./order-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./order-service:/app
+    command: npm start
