@@ -11,7 +11,7 @@ services:
     environment:
       - POSTGRES_HOST=postgres-user
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=user
+      - POSTGRES_USER=db_user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=user_db
 
@@ -22,6 +22,12 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres-order
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=order_db # Make sure to set this to your order DB
 
   inventory-service:
     build: ./inventory-service
@@ -61,3 +67,14 @@ services:
       - "5432:5432"
     volumes:
       - ./init-scripts/init_user.sql:/docker-entrypoint-initdb.d/init_user.sql
+
+  postgres-order:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_db # Change to your desired order DB name
+    ports:
+      - "5433:5432" # Different port to avoid conflict with user DB
+    volumes:
+      - ./init-scripts/init_order.sql:/docker-entrypoint-initdb.d/init_order.sql # Optional init script

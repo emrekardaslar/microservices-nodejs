@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const { Sequelize, DataTypes } = require("sequelize");
 const amqp = require("amqplib/callback_api");
 
 const app = express();
@@ -7,7 +8,24 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
-let orders = []; // In-memory storage for orders
+// PostgreSQL connection
+const sequelize = new Sequelize("order_db", "db_user", "password", {
+  host: "postgres-order", // Use the service name here
+  dialect: "postgres",
+});
+
+// Order model definition
+const Order = sequelize.define("Order", {
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  items: {
+    type: DataTypes.JSON,
+    allowNull: false,
+  },
+});
+
 let channel; // RabbitMQ channel
 
 // Connect to RabbitMQ
@@ -40,10 +58,9 @@ function handleOrderMessage(msg) {
 }
 
 // Place an order
-function placeOrder(req, res) {
+async function placeOrder(req, res) {
   const { userId, items } = req.body;
-  const newOrder = { id: orders.length + 1, userId, items };
-  orders.push(newOrder);
+  const newOrder = await Order.create({ userId, items });
 
   // Publish event to RabbitMQ
   channel.publish("order_events", "", Buffer.from(JSON.stringify(newOrder)));
@@ -53,11 +70,13 @@ function placeOrder(req, res) {
 }
 
 // Start the server
-function startServer() {
+async function startServer() {
+  await sequelize.sync(); // Synchronize the model with the database
   app.post("/order", placeOrder);
 
   // Get all orders
-  app.get("/orders", (req, res) => {
+  app.get("/orders", async (req, res) => {
+    const orders = await Order.findAll();
     res.status(200).json(orders);
   });
 
@@ -67,9 +86,15 @@ function startServer() {
 }
 
 // Initialize the service
-function init() {
-  connectRabbitMQ();
-  startServer();
+async function init() {
+  try {
+    await sequelize.authenticate();
+    console.log("Database connected successfully");
+    connectRabbitMQ();
+    startServer();
+  } catch (error) {
+    console.error("Error initializing service:", error);
+  }
 }
 
 init();
