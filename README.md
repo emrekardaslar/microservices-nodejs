@@ -53,3 +53,15 @@ This `README.md` provides a comprehensive guide for setting up, running, and int
     -H "Content-Type: application/json" \
     -d '{"userId": 1, "items": [{"product": "Widget", "quantity": 2}, {"product": "Gadget", "quantity": 1}]}'
     ```
+
+    Get inventory status:
+
+    ```
+    curl -X GET http://localhost:3002/inventory
+    ```
+
+    Get all shipments:
+
+    ```
+    curl -X GET http://localhost:3003/shipments
+    ```
