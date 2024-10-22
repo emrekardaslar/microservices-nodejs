@@ -1,4 +1,5 @@
-version: "3"
+version: "3.8" # Use 3.8 for the latest features, or 3 if you prefer
+
 services:
   user-service:
     build: ./user-service
@@ -12,6 +13,22 @@ services:
     build: ./order-service
     ports:
       - "3001:3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  inventory-service:
+    build: ./inventory-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  shipping-service:
+    build: ./shipping-service
+    ports:
+      - "3003:3003"
     depends_on:
       rabbitmq:
         condition: service_healthy
