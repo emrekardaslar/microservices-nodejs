@@ -21,7 +21,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "userId": {
+                "user_id": {
                   "type": "integer",
                   "description": "ID of the user placing the order"
                 },
@@ -34,7 +34,7 @@
                   "description": "Quantity of the product being ordered"
                 }
               },
-              "required": ["userId", "product_name", "quantity"]
+              "required": ["user_id", "product_name", "quantity"]
             }
           }
         ],

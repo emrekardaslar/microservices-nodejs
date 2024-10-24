@@ -77,17 +77,17 @@ function handleOrderMessage(msg) {
 
 // Place an order
 async function placeOrder(req, res) {
-  const { userId, product_name, quantity } = req.body; // Adjusted to match new model fields
+  const { user_id, product_name, quantity } = req.body; // Adjusted to match new model fields
 
   // Validate input
-  if (!userId || !product_name || !quantity) {
+  if (!user_id || !product_name || !quantity) {
     return res
       .status(400)
-      .json({ message: "userId, product_name, and quantity are required." });
+      .json({ message: "user_id, product_name, and quantity are required." });
   }
 
   const newOrder = await Order.create({
-    user_id: userId,
+    user_id,
     product_name,
     quantity,
   }); // Match the database fields
