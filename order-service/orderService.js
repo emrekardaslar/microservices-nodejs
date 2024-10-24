@@ -2,11 +2,16 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { Sequelize, DataTypes } = require("sequelize");
 const amqp = require("amqplib/callback_api");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger.json"); // Adjust the path if needed
 
 const app = express();
 const PORT = 3001;
 
 app.use(bodyParser.json());
+
+// Serve Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // PostgreSQL connection
 const sequelize = new Sequelize("order_db", "db_user", "password", {
@@ -14,19 +19,32 @@ const sequelize = new Sequelize("order_db", "db_user", "password", {
   dialect: "postgres",
 });
 
-// Order model definition
+// Order model definition compatible with the database schema
 const Order = sequelize.define("Order", {
-  userId: {
+  user_id: {
+    // Match the database field name
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  items: {
-    type: DataTypes.JSON,
+  product_name: {
+    // Add product_name field
+    type: DataTypes.STRING,
     allowNull: false,
+  },
+  quantity: {
+    // Add quantity field
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  order_date: {
+    // Add order_date field
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
   },
 });
 
-let channel; // RabbitMQ channel
+// Setting up RabbitMQ channel
+let channel;
 
 // Connect to RabbitMQ
 function connectRabbitMQ() {
@@ -59,8 +77,20 @@ function handleOrderMessage(msg) {
 
 // Place an order
 async function placeOrder(req, res) {
-  const { userId, items } = req.body;
-  const newOrder = await Order.create({ userId, items });
+  const { userId, product_name, quantity } = req.body; // Adjusted to match new model fields
+
+  // Validate input
+  if (!userId || !product_name || !quantity) {
+    return res
+      .status(400)
+      .json({ message: "userId, product_name, and quantity are required." });
+  }
+
+  const newOrder = await Order.create({
+    user_id: userId,
+    product_name,
+    quantity,
+  }); // Match the database fields
 
   // Publish event to RabbitMQ
   channel.publish("order_events", "", Buffer.from(JSON.stringify(newOrder)));
@@ -82,6 +112,7 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`Order Service running on http://localhost:${PORT}`);
+    console.log(`API docs available at http://localhost:${PORT}/api-docs`);
   });
 }
 

@@ -1,0 +1,124 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Order Service API",
+    "description": "API for managing orders in the Order Service. Includes endpoints for creating and retrieving orders."
+  },
+  "host": "localhost:3001",
+  "basePath": "/",
+  "schemes": ["http"],
+  "paths": {
+    "/order": {
+      "post": {
+        "summary": "Create a new order",
+        "description": "This endpoint allows users to create a new order.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "integer",
+                  "description": "ID of the user placing the order"
+                },
+                "product_name": {
+                  "type": "string",
+                  "description": "Name of the product being ordered"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Quantity of the product being ordered"
+                }
+              },
+              "required": ["userId", "product_name", "quantity"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Order created successfully",
+            "schema": {
+              "$ref": "#/definitions/Order"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "summary": "Retrieve all orders",
+        "description": "This endpoint retrieves a list of all orders.",
+        "responses": {
+          "200": {
+            "description": "A list of orders",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Order"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Order": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique identifier for the order"
+        },
+        "user_id": {
+          "type": "integer",
+          "description": "ID of the user who placed the order"
+        },
+        "product_name": {
+          "type": "string",
+          "description": "Name of the product ordered"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Quantity of the product ordered"
+        },
+        "order_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time when the order was placed"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        }
+      }
+    }
+  }
+}
