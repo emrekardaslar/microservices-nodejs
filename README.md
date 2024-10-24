@@ -54,6 +54,22 @@ This `README.md` provides a comprehensive guide for setting up, running, and int
     -d '{"userId": 1, "items": [{"product": "Widget", "quantity": 2}, {"product": "Gadget", "quantity": 1}]}'
     ```
 
+    Post an inventory item
+
+    ```
+    curl -X POST http://localhost:3002/inventory \
+     -H "Content-Type: application/json" \
+     -d '{"productName": "Widget", "quantity": 100}'
+    ```
+
+    Post a shipment item
+
+    ```
+    curl -X POST http://localhost:3003/shipment \
+     -H "Content-Type: application/json" \
+     -d '{"order_id": 1, "shipping_address": "123 Shipping Lane"}'
+    ```
+
     Get inventory status:
 
     ```
