@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const { Sequelize, DataTypes } = require("sequelize");
 const amqp = require("amqplib/callback_api");
 
 const app = express();
@@ -7,11 +8,26 @@ const PORT = 3002;
 
 app.use(bodyParser.json());
 
-let inventory = [
-  { id: 1, item: "Laptop", quantity: 100 },
-  { id: 2, item: "Phone", quantity: 200 },
-]; // In-memory storage for inventory items
-let channel;
+// PostgreSQL connection
+const sequelize = new Sequelize(
+  "inventory_db",
+  "inventory_user",
+  "inventory_password",
+  {
+    host: "postgres-inventory",
+    dialect: "postgres",
+  }
+);
+const Inventory = sequelize.define("Inventory", {
+  product_name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+});
 
 // Connect to RabbitMQ
 function connectRabbitMQ() {
@@ -20,32 +36,76 @@ function connectRabbitMQ() {
     connection.createChannel((err, ch) => {
       if (err) throw err;
       channel = ch;
-      channel.assertExchange("order_events", "fanout", { durable: false });
+      channel.assertExchange("inventory_events", "fanout", { durable: false });
 
+      // Create a temporary queue for consuming messages
       channel.assertQueue("", { exclusive: true }, (err, q) => {
         if (err) throw err;
-        channel.bindQueue(q.queue, "order_events", "");
 
-        console.log("Waiting for order messages in %s", q.queue);
-        channel.consume(q.queue, handleOrderMessage, { noAck: true });
+        // Bind the queue to the inventory events exchange
+        channel.bindQueue(q.queue, "inventory_events", "");
+
+        console.log("Waiting for inventory messages in %s", q.queue);
+        channel.consume(q.queue, handleInventoryMessage, { noAck: true });
       });
     });
   });
 }
 
-// Handle incoming order messages
-function handleOrderMessage(msg) {
-  const order = JSON.parse(msg.content.toString());
-  console.log(`Processing order in Inventory: ${JSON.stringify(order)}`);
-  // Here, you would update the inventory based on the ordered items.
+// Handle inventory message
+function handleInventoryMessage(msg) {
+  const inventoryUpdate = JSON.parse(msg.content.toString());
+  console.log(`Inventory updated: ${JSON.stringify(inventoryUpdate)}`);
 }
 
-// Get inventory
-app.get("/inventory", (req, res) => {
-  res.status(200).json(inventory);
-});
+// Update or create inventory item
+async function updateInventory(req, res) {
+  const { productName, quantity } = req.body;
 
-app.listen(PORT, () => {
-  console.log(`Inventory Service running on http://localhost:${PORT}`);
-  connectRabbitMQ();
-});
+  try {
+    if (!productName || !quantity) {
+      return res
+        .status(400)
+        .json({ message: "Product name and quantity are required." });
+    }
+
+    const updatedItem = await Inventory.create({
+      product_name: productName, // Use correct field name here
+      quantity,
+    });
+
+    res.status(201).json(updatedItem);
+  } catch (error) {
+    console.error("Error updating inventory:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// Start server
+async function startServer() {
+  await sequelize.sync();
+  app.post("/inventory", updateInventory);
+
+  app.get("/inventory", async (req, res) => {
+    const inventory = await Inventory.findAll();
+    res.status(200).json(inventory);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Inventory Service running on http://localhost:${PORT}`);
+  });
+}
+
+// Initialize
+async function init() {
+  try {
+    await sequelize.authenticate();
+    console.log("Inventory DB connected");
+    connectRabbitMQ();
+    startServer();
+  } catch (error) {
+    console.error("Error initializing inventory service:", error);
+  }
+}
+
+init();

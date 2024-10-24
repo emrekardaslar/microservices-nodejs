@@ -36,6 +36,12 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres-inventory
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=inventory_user
+      - POSTGRES_PASSWORD=inventory_password
+      - POSTGRES_DB=inventory_db
 
   shipping-service:
     build: ./shipping-service
@@ -78,3 +84,14 @@ services:
       - "5433:5432" # Different port to avoid conflict with user DB
     volumes:
       - ./init-scripts/init_order.sql:/docker-entrypoint-initdb.d/init_order.sql # Optional init script
+
+  postgres-inventory:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_password
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./init-scripts/init_inventory.sql:/docker-entrypoint-initdb.d/init_inventory.sql
