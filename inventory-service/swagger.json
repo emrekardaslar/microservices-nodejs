@@ -1,0 +1,83 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "API documentation for the Inventory Service",
+    "version": "1.0.0",
+    "title": "Inventory Service API"
+  },
+  "host": "localhost:3002",
+  "basePath": "/",
+  "schemes": ["http"],
+  "paths": {
+    "/inventory": {
+      "post": {
+        "summary": "Update inventory",
+        "description": "Updates an inventory item or creates a new one.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "productName": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer"
+                }
+              },
+              "required": ["productName", "quantity"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Inventory item created or updated successfully."
+          },
+          "400": {
+            "description": "Bad Request: Product name and quantity are required."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get inventory",
+        "description": "Retrieves all inventory items.",
+        "responses": {
+          "200": {
+            "description": "A list of inventory items.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Inventory"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Inventory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "product_name": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

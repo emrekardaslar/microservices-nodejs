@@ -2,11 +2,16 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { Sequelize, DataTypes } = require("sequelize");
 const amqp = require("amqplib/callback_api");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger.json"); // Adjust the path if needed
 
 const app = express();
 const PORT = 3002;
 
 app.use(bodyParser.json());
+
+// Serve Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // PostgreSQL connection
 const sequelize = new Sequelize(
@@ -93,6 +98,7 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`Inventory Service running on http://localhost:${PORT}`);
+    console.log(`API docs available at http://localhost:${PORT}/api-docs`);
   });
 }
 
