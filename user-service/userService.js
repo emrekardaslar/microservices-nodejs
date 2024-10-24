@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const { Sequelize, DataTypes } = require("sequelize");
 const amqp = require("amqplib/callback_api");
 
 const app = express();
@@ -7,73 +8,88 @@ const PORT = 3000;
 
 app.use(bodyParser.json());
 
-let users = []; // In-memory storage for users
-let channel; // RabbitMQ channel
+// PostgreSQL connection
+const sequelize = new Sequelize("user_db", "db_user", "password", {
+  host: "postgres-user", // Use the service name here
+  dialect: "postgres",
+});
+
+const User = sequelize.define("User", {
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
 
 // Connect to RabbitMQ
 function connectRabbitMQ() {
   amqp.connect("amqp://rabbitmq", (err, connection) => {
-    if (err) throw err;
+    if (err) {
+      console.error("Error connecting to RabbitMQ:", err);
+      return;
+    }
     connection.createChannel((err, ch) => {
-      if (err) throw err;
+      if (err) {
+        console.error("Error creating RabbitMQ channel:", err);
+        return;
+      }
       channel = ch;
       channel.assertExchange("user_events", "fanout", { durable: false });
-      channel.assertExchange("order_events", "fanout", { durable: false }); // Declare the order_events exchange
-
-      // Create a temporary queue for consuming messages
-      channel.assertQueue("", { exclusive: true }, (err, q) => {
-        if (err) throw err;
-
-        // Bind the queue to the order events exchange
-        channel.bindQueue(q.queue, "order_events", "");
-
-        console.log("Waiting for order messages in %s", q.queue);
-        channel.consume(q.queue, handleOrderMessage, { noAck: true });
-      });
+      console.log("RabbitMQ connected and exchange created");
     });
   });
 }
 
-// Handle incoming order messages
-function handleOrderMessage(msg) {
-  const order = JSON.parse(msg.content.toString());
-  console.log(
-    `Order created for userId ${order.userId}: ${JSON.stringify(order)}`
-  );
-  // You can perform actions here based on the new order, like updating user status, etc.
-}
-
 // Register a user
-function registerUser(req, res) {
-  const { username, email } = req.body;
-  const newUser = { id: users.length + 1, username, email };
-  users.push(newUser);
-
-  // Publish user event to RabbitMQ
-  channel.publish("user_events", "", Buffer.from(JSON.stringify(newUser)));
-  console.log(`User registered: ${JSON.stringify(newUser)}`);
-
-  res.status(201).send(newUser);
+async function registerUser(req, res) {
+  try {
+    const { username, email } = req.body;
+    const newUser = await User.create({ username, email });
+    res.status(201).send(newUser);
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).send("Internal Server Error");
+  }
 }
 
 // Start the server
-function startServer() {
-  app.post("/register", registerUser);
+async function startServer() {
+  try {
+    await sequelize.sync();
+    app.post("/register", registerUser);
 
-  // Get all users
-  app.get("/users", (req, res) => {
-    res.status(200).json(users);
-  });
+    app.get("/users", async (req, res) => {
+      try {
+        const users = await User.findAll();
+        res.status(200).json(users);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
 
-  app.listen(PORT, () => {
-    console.log(`User Service running on http://localhost:${PORT}`);
-  });
+    app.listen(PORT, () => {
+      console.log(`User Service running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting the server:", error);
+  }
 }
 
 // Initialize the service
-function init() {
-  connectRabbitMQ();
-  startServer();
+async function init() {
+  try {
+    await sequelize.authenticate();
+    console.log("Database connected successfully");
+    connectRabbitMQ();
+    startServer();
+  } catch (error) {
+    console.error("Error initializing service:", error);
+  }
 }
 
 init();
