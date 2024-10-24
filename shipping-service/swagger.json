@@ -1,0 +1,92 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "API documentation for the Shipping Service",
+    "version": "1.0.0",
+    "title": "Shipping Service API"
+  },
+  "host": "localhost:3003",
+  "basePath": "/",
+  "schemes": ["http"],
+  "paths": {
+    "/shipment": {
+      "post": {
+        "summary": "Create a shipment",
+        "description": "Creates a new shipment.",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "integer"
+                },
+                "shipping_address": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Shipment created successfully."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/shipments": {
+      "get": {
+        "summary": "Get all shipments",
+        "description": "Returns a list of all shipments.",
+        "responses": {
+          "200": {
+            "description": "A list of shipments.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Shipment"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Shipment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "order_id": {
+          "type": "integer"
+        },
+        "shipping_address": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "shipped_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "delivery_date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
