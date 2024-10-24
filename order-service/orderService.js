@@ -53,9 +53,14 @@ function connectRabbitMQ() {
     connection.createChannel((err, ch) => {
       if (err) throw err;
       channel = ch;
+
+      // Existing order events queue
       channel.assertExchange("order_events", "fanout", { durable: false });
 
-      // Create a temporary queue for consuming messages
+      // New user registration events queue
+      channel.assertExchange("user_events", "fanout", { durable: false });
+
+      // Create a temporary queue for consuming order messages
       channel.assertQueue("", { exclusive: true }, (err, q) => {
         if (err) throw err;
 
@@ -65,6 +70,16 @@ function connectRabbitMQ() {
         console.log("Waiting for order messages in %s", q.queue);
         channel.consume(q.queue, handleOrderMessage, { noAck: true });
       });
+
+      // Create a temporary queue for consuming user registration messages
+      channel.assertQueue("", { exclusive: true }, (err, q) => {
+        if (err) throw err;
+
+        // Bind the queue to the user events exchange
+        channel.bindQueue(q.queue, "user_events", "");
+        console.log("Waiting for user registration messages in %s", q.queue);
+        channel.consume(q.queue, handleUserRegistration, { noAck: true });
+      });
     });
   });
 }
@@ -73,6 +88,27 @@ function connectRabbitMQ() {
 function handleOrderMessage(msg) {
   const order = JSON.parse(msg.content.toString());
   console.log(`Order created: ${JSON.stringify(order)}`);
+}
+
+// Handle incoming user registration messages
+function handleUserRegistration(msg) {
+  const user = JSON.parse(msg.content.toString());
+  console.log(`User registered: ${JSON.stringify(user)}`);
+
+  // Optionally create a welcome order for the new user
+  createWelcomeOrder(user);
+}
+
+// Function to create a welcome order for the new user
+async function createWelcomeOrder(user) {
+  const welcomeOrder = {
+    user_id: user.id, // Assuming the user object has an 'id' field
+    product_name: "Welcome Gift",
+    quantity: 1,
+  };
+
+  const newOrder = await Order.create(welcomeOrder);
+  console.log(`Welcome order created: ${JSON.stringify(newOrder)}`);
 }
 
 // Place an order
