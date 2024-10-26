@@ -30,6 +30,9 @@ const User = sequelize.define("User", {
   },
 });
 
+// Setting up RabbitMQ channel
+let channel;
+
 // Connect to RabbitMQ
 function connectRabbitMQ() {
   amqp.connect("amqp://rabbitmq", (err, connection) => {
@@ -54,6 +57,13 @@ async function registerUser(req, res) {
   try {
     const { username, email } = req.body;
     const newUser = await User.create({ username, email });
+
+    // Publish user registration event
+    channel.publish("user_events", "", Buffer.from(JSON.stringify(newUser)));
+    console.log(
+      `User registered and event published: ${JSON.stringify(newUser)}`
+    );
+
     res.status(201).send(newUser);
   } catch (error) {
     console.error("Error registering user:", error);
