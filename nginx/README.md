@@ -26,10 +26,6 @@ Here are some example endpoints you can access through the NGINX server:
        curl -X GET http://localhost/api/users/
        ```
 
-       ```
-
-       ```
-
 2. **Order Service**
 
    - **Get All Orders**:
