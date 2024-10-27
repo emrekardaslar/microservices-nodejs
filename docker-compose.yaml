@@ -14,6 +14,8 @@ services:
       - POSTGRES_USER=db_user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=user_db
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   order-service:
     build: ./order-service
@@ -27,7 +29,9 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=db_user
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=order_db # Make sure to set this to your order DB
+      - POSTGRES_DB=order_db
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   inventory-service:
     build: ./inventory-service
@@ -42,6 +46,8 @@ services:
       - POSTGRES_USER=inventory_user
       - POSTGRES_PASSWORD=inventory_password
       - POSTGRES_DB=inventory_db
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   shipping-service:
     build: ./shipping-service
@@ -56,6 +62,8 @@ services:
       - POSTGRES_USER=db_shipping_user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=shipping_db
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -68,6 +76,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   postgres-user:
     image: postgres:13
@@ -79,17 +89,21 @@ services:
       - "5432:5432"
     volumes:
       - ./init-scripts/init_user.sql:/docker-entrypoint-initdb.d/init_user.sql
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   postgres-order:
     image: postgres:13
     environment:
       POSTGRES_USER: db_user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: order_db # Change to your desired order DB name
+      POSTGRES_DB: order_db
     ports:
-      - "5433:5432" # Different port to avoid conflict with user DB
+      - "5433:5432"
     volumes:
-      - ./init-scripts/init_order.sql:/docker-entrypoint-initdb.d/init_order.sql # Optional init script
+      - ./init-scripts/init_order.sql:/docker-entrypoint-initdb.d/init_order.sql
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   postgres-inventory:
     image: postgres:13
@@ -101,6 +115,8 @@ services:
       - "5434:5432"
     volumes:
       - ./init-scripts/init_inventory.sql:/docker-entrypoint-initdb.d/init_inventory.sql
+    networks:
+      - microservices_net # Ensure it is part of the network
 
   postgres-shipping:
     image: postgres:13
@@ -109,6 +125,25 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: shipping_db
     ports:
-      - "5435:5432" # Use a different port for each service
+      - "5435:5432"
     volumes:
       - ./init-scripts/init_shipping.sql:/docker-entrypoint-initdb.d/init_shipping.sql
+    networks:
+      - microservices_net # Ensure it is part of the network
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "80:80" # Expose NGINX on port 80
+    depends_on:
+      - user-service
+      - order-service
+      - inventory-service
+      - shipping-service
+    networks:
+      - microservices_net # Ensure it is part of the network
+
+networks:
+  microservices_net:
+    driver: bridge
